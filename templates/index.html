@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>Flask-SocketIO Chat</title>
+    <!-- Load Socket.IO client library from CDN (v4.x) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.1/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>Global Chatroom</h1>
+    <ul id="messages" style="list-style-type: none; padding: 0;"></ul>
+    <input id="message" autocomplete="off" placeholder="Type a message..." />
+    <button onclick="sendMessage()">Send</button>
+
+    <script>
+        // Connect to the Socket.IO server
+        var socket = io();  // auto-connects to the host that served the page
+
+        // Listen for incoming messages from the server
+        socket.on('message', function(msg) {
+            var li = document.createElement('li');
+            li.textContent = msg;
+            document.getElementById('messages').appendChild(li);
+        });
+
+        // Send a message to the server when the user clicks "Send"
+        function sendMessage() {
+            var input = document.getElementById('message');
+            var msg = input.value;
+            if (msg) {
+                socket.send(msg);  // Trigger 'message' event on server
+                input.value = '';
+            }
+        }
+    </script>
+</body>
+</html>
