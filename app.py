@@ -1,36 +1,68 @@
-import eventlet
-eventlet.monkey_patch()
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+import redis.asyncio as redis
+import asyncio
+from fastapi.responses import HTMLResponse
 
-from flask import Flask, render_template
-from flask_socketio import SocketIO, send
+app = FastAPI()
+redis_client = redis.Redis()
 
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'hashdoaflkadf'  # Replace with a secure key
+CHANNEL = "chatroom"
+connected_clients = []
 
-# Initialize SocketIO with Redis message queue.
-# This allows multiple processes/instances to share messages via Redis:contentReference[oaicite:2]{index=2}.
-socketio = SocketIO(
-    app,
-    cors_allowed_origins='*',
-    message_queue='redis://localhost:6379',  # Redis broker
-    async_mode='eventlet'
-)
+@app.get("/", response_class=HTMLResponse)
+async def root():
+    return """
+    <!DOCTYPE html>
+    <html>
+    <body>
+      <h2>Chatroom</h2>
+      <input id="msgInput" placeholder="Type a message" />
+      <button onclick="sendMessage()">Send</button>
+      <ul id="chat"></ul>
 
-@app.route('/')
-def index():
-    # Serve the chat client page
-    return render_template('index.html')
+      <script>
+        const ws = new WebSocket("ws://" + location.host + "/ws");
 
-@socketio.on('message')
-def handle_message(msg):
+        ws.onmessage = function(event) {
+          const msg = document.createElement("li");
+          msg.innerText = event.data;
+          document.getElementById("chat").appendChild(msg);
+        };
+
+        function sendMessage() {
+          const input = document.getElementById("msgInput");
+          ws.send(input.value);
+          input.value = '';
+        }
+      </script>
+    </body>
+    </html>
     """
-    Handle incoming messages from a client.
-    Broadcast the message to all connected clients (including sender).
-    """
-    print('Received message:', msg)
-    # Use broadcast=True to send to all clients (global chat):contentReference[oaicite:3]{index=3}.
-    send(msg, broadcast=True)
 
-if __name__ == '__main__':
-    # Start the Flask-SocketIO server. By default this uses eventlet (if installed).
-    socketio.run(app, host='0.0.0.0', port=5000)
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    connected_clients.append(websocket)
+    pubsub = redis_client.pubsub()
+    await pubsub.subscribe(CHANNEL)
+
+    async def send_messages():
+        async for message in pubsub.listen():
+            if message["type"] == "message":
+                data = message["data"].decode()
+                await broadcast(data)
+
+    async def receive_messages():
+        try:
+            while True:
+                data = await websocket.receive_text()
+                await redis_client.publish(CHANNEL, data)
+        except WebSocketDisconnect:
+            connected_clients.remove(websocket)
+            await websocket.close()
+
+    await asyncio.gather(send_messages(), receive_messages())
+
+async def broadcast(message: str):
+    for client in connected_clients:
+        await client.send_text(message)
