@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Redis Chatroom</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <div class="online-header">Online Users</div>
+      <ul id="online-users"></ul>
+    </div>
+    
+    <div class="main">
+      <div id="chat-messages"></div>
+      <div class="input-area">
+        <input type="text" id="message-input" placeholder="Type your message...">
+        <button id="send-btn">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+    const username = `User${Math.floor(Math.random() * 1000)}`;
+    const room = 'general';
+    
+    // DOM elements
+    const chatMessages = document.getElementById('chat-messages');
+    const messageInput = document.getElementById('message-input');
+    const sendBtn = document.getElementById('send-btn');
+    const onlineUsersList = document.getElementById('online-users');
+    
+    // Join room on load
+    window.onload = () => {
+      socket.emit('joinRoom', { room, username });
+      
+      // Add welcome message
+      addMessageToChat({
+        username: 'System',
+        text: `Welcome to the chat, ${username}!`,
+        timestamp: Date.now()
+      });
+    };
+    
+    // Send message handler
+    sendBtn.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+    
+    function sendMessage() {
+      const message = messageInput.value.trim();
+      if (message) {
+        socket.emit('chatMessage', message);
+        messageInput.value = '';
+      }
+    }
+    
+    // Receive messages
+    socket.on('message', (msg) => {
+      addMessageToChat(msg);
+    });
+    
+    // Add message to UI
+    function addMessageToChat(msg) {
+      const messageElement = document.createElement('div');
+      messageElement.className = 'message';
+      
+      const timestamp = new Date(msg.timestamp).toLocaleTimeString();
+      messageElement.innerHTML = `
+        <div class="message-header">
+          <span class="username">${msg.username}</span>
+          <span class="timestamp">${timestamp}</span>
+        </div>
+        <div class="message-text">${msg.text}</div>
+      `;
+      
+      chatMessages.appendChild(messageElement);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    // Presence heartbeat (every 10 seconds)
+    setInterval(() => {
+      socket.emit('heartbeat', username);
+    }, 10000);
+    
+    // Fetch online users (every 5 seconds)
+    setInterval(async () => {
+      try {
+        const response = await fetch('/online-users');
+        const users = await response.json();
+        updateOnlineUsers(users);
+      } catch (error) {
+        console.error('Error fetching online users:', error);
+      }
+    }, 5000);
+    
+    // Update online users list
+    function updateOnlineUsers(users) {
+      onlineUsersList.innerHTML = '';
+      users.forEach(user => {
+        const li = document.createElement('li');
+        li.textContent = user;
+        onlineUsersList.appendChild(li);
+      });
+    }
+  </script>
+</body>
+</html>
