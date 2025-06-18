@@ -1,0 +1,20 @@
+# Redis Operations Cheat Sheet
+
+Add Message
+
+```bash
+ZADD messages:general 1650000000 '{"user":"Alice","text":"Hello!"}'
+```
+
+Get Last 10 Messages
+
+```bash
+ZREVRANGE messages:general 0 9 WITHSCORES
+```
+
+Track Online Users
+
+```bash
+ZADD online_status 1650000000 "Alice"
+ZREMRANGEBYSCORE online_status -inf (1650000000-30000)  # Remove 30s inactive
+```
