@@ -1,3 +1,13 @@
+:root {
+  --primary: #3498db;
+  --primary-dark: #2980b9;
+  --secondary: #2c3e50;
+  --light: #ecf0f1;
+  --dark: #34495e;
+  --danger: #e74c3c;
+  --success: #2ecc71;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -12,6 +22,7 @@ body {
 
 .container {
   display: flex;
+  flex-direction: column;
   height: 100vh;
   max-width: 1400px;
   margin: 0 auto;
@@ -19,28 +30,72 @@ body {
   box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
 
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: var(--secondary);
+  color: white;
+}
+
+.header h1 {
+  font-size: 1.5rem;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+#logout-btn {
+  padding: 5px 10px;
+  background: var(--danger);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#logout-btn:hover {
+  background: #c0392b;
+}
+
+.content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
 .sidebar {
   width: 250px;
-  background: #2c3e50;
+  background: var(--dark);
   color: white;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .online-header {
-  padding: 20px;
-  background: #1a252f;
-  font-weight: bold;
+  padding: 15px;
+  background: var(--secondary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 #online-users {
   padding: 10px;
+  list-style: none;
+  flex: 1;
 }
 
 #online-users li {
   padding: 8px 12px;
   border-radius: 4px;
   margin-bottom: 5px;
-  background: #34495e;
+  background: #3d566e;
 }
 
 .main {
@@ -73,7 +128,7 @@ body {
 
 .username {
   font-weight: bold;
-  color: #3498db;
+  color: var(--primary);
 }
 
 .timestamp {
@@ -99,7 +154,7 @@ body {
 #send-btn {
   padding: 12px 20px;
   margin-left: 10px;
-  background: #3498db;
+  background: var(--primary);
   color: white;
   border: none;
   border-radius: 4px;
@@ -108,5 +163,85 @@ body {
 }
 
 #send-btn:hover {
-  background: #2980b9;
+  background: var(--primary-dark);
+}
+
+/* Auth Styles */
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: var(--secondary);
+}
+
+.auth-box {
+  width: 100%;
+  max-width: 400px;
+  padding: 30px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.auth-box h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: var(--dark);
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: var(--dark);
+}
+
+.form-group input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1em;
+}
+
+.auth-box button {
+  width: 100%;
+  padding: 12px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1em;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.auth-box button:hover {
+  background: var(--primary-dark);
+}
+
+.auth-box p {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.auth-box a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.auth-box a:hover {
+  text-decoration: underline;
+}
+
+.error-message {
+  color: var(--danger);
+  margin-top: 10px;
+  text-align: center;
 }

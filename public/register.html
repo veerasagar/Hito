@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Register - Redis Chatroom</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="auth-container">
+    <div class="auth-box">
+      <h2>Create an Account</h2>
+      <form id="register-form">
+        <div class="form-group">
+          <label for="reg-username">Username</label>
+          <input type="text" id="reg-username" required>
+        </div>
+        <div class="form-group">
+          <label for="reg-password">Password</label>
+          <input type="password" id="reg-password" required>
+        </div>
+        <button type="submit">Register</button>
+        <div id="reg-error-message" class="error-message"></div>
+      </form>
+      <p>Already have an account? <a href="/login">Login</a></p>
+    </div>
+  </div>
+  
+  <script src="app.js"></script>
+</body>
+</html>
