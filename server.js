@@ -37,6 +37,11 @@ async function initializeRoom() {
 }
 initializeRoom();
 
+// Helper function to generate conversation key
+function getConversationKey(user1, user2) {
+  return [user1, user2].sort().join(':');
+}
+
 // Authentication middleware for HTTP routes
 const authenticateToken = (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1];
@@ -80,6 +85,9 @@ app.get('/register', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'register.html'));
 });
 
+// Mount auth routes
+app.use('/auth', auth);
+
 // Socket.IO authentication middleware
 io.use((socket, next) => {
   const token = socket.handshake.auth.token;
@@ -96,6 +104,9 @@ io.use((socket, next) => {
 io.on('connection', (socket) => {
   console.log('User connected:', socket.user.username);
   const username = socket.user.username;
+  
+  // Join user's own room for private messages
+  socket.join(username);
   
   // Join room handler
   socket.on('joinRoom', async ({ room }) => {
@@ -116,13 +127,14 @@ io.on('connection', (socket) => {
     console.log(`${username} joined ${room}`);
   });
 
-  // Message handler
+  // Message handler (public room)
   socket.on('chatMessage', async (msg) => {
     const message = {
       username,
       text: msg,
       timestamp: Date.now(),
-      room: socket.room
+      room: socket.room,
+      type: 'public'
     };
     
     // Store in Redis sorted set
@@ -135,6 +147,51 @@ io.on('connection', (socket) => {
     await pubClient.publish(`chat:${socket.room}`, JSON.stringify(message));
   });
 
+  // Private message handler
+  socket.on('privateMessage', async ({ to, text }) => {
+    const from = username;
+    const conversationKey = getConversationKey(from, to);
+    const message = {
+      from,
+      to,
+      text,
+      timestamp: Date.now(),
+      type: 'private'
+    };
+    
+    // Store the message in Redis
+    await redisClient.zAdd(
+      `private:${conversationKey}`,
+      { score: message.timestamp, value: JSON.stringify(message) }
+    );
+    
+    // Add to both users' conversation sets
+    await redisClient.sAdd(`user:${from}:conversations`, to);
+    await redisClient.sAdd(`user:${to}:conversations`, from);
+    
+    // Publish to the private channel
+    await pubClient.publish(`private:${from}:${to}`, JSON.stringify(message));
+    await pubClient.publish(`private:${to}:${from}`, JSON.stringify(message));
+  });
+
+  // Fetch private conversation history
+  socket.on('getPrivateHistory', async ({ withUser }) => {
+    const user = username;
+    const conversationKey = getConversationKey(user, withUser);
+    const messages = await redisClient.zRange(`private:${conversationKey}`, -50, -1);
+    socket.emit('privateHistory', {
+      withUser,
+      messages: messages.map(msg => JSON.parse(msg))
+    });
+  });
+
+  // Fetch user's conversations
+  socket.on('getConversations', async () => {
+    const user = username;
+    const conversations = await redisClient.sMembers(`user:${user}:conversations`);
+    socket.emit('conversations', conversations);
+  });
+
   // Presence heartbeat
   socket.on('heartbeat', async () => {
     await redisClient.zAdd('online_status', [
@@ -145,14 +202,19 @@ io.on('connection', (socket) => {
   // Cleanup on disconnect
   socket.on('disconnect', async () => {
     console.log('User disconnected:', username);
-    // Note: We're not removing from online_status here - handled by cleanup job
   });
 });
 
-// Subscribe to Redis channels
+// Subscribe to public chat channels
 subClient.pSubscribe('chat:*', (message, channel) => {
   const room = channel.replace('chat:', '');
   io.to(room).emit('message', JSON.parse(message));
+});
+
+// Subscribe to private messages
+subClient.pSubscribe('private:*', (message, channel) => {
+  const [type, from, to] = channel.split(':');
+  io.to(from).to(to).emit('privateMessage', JSON.parse(message));
 });
 
 // Clean up inactive users (every 1 minute)

@@ -16,6 +16,12 @@
     
     <div class="content">
       <div class="sidebar">
+        <div class="sidebar-header">
+          <h2>Conversations</h2>
+          <button id="new-conversation-btn">+ New</button>
+        </div>
+        <ul id="conversations"></ul>
+        
         <div class="online-header">
           <h2>Online Users</h2>
           <span id="online-count">0</span>
@@ -24,12 +30,28 @@
       </div>
       
       <div class="main">
+        <div class="chat-header">
+          <h2 id="chat-with">General Chat</h2>
+        </div>
         <div id="chat-messages"></div>
         <div class="input-area">
           <input type="text" id="message-input" placeholder="Type your message...">
           <button id="send-btn">Send</button>
         </div>
       </div>
+    </div>
+  </div>
+  
+  <!-- Conversation Modal -->
+  <div id="conversation-modal" class="modal">
+    <div class="modal-content">
+      <span id="close-modal" class="close">&times;</span>
+      <h2>Start a New Conversation</h2>
+      <div class="form-group">
+        <label for="conversation-user">Select User:</label>
+        <select id="conversation-user"></select>
+      </div>
+      <button id="start-conversation-btn">Start Conversation</button>
     </div>
   </div>
   
