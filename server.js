@@ -28,13 +28,29 @@ subClient.on('error', (err) => console.log('Redis Sub Error', err));
 
 // Initialize default chat room
 async function initializeRoom() {
-  await redisClient.connect();
-  await pubClient.connect();
-  await subClient.connect();
-  
-  await redisClient.sAdd('rooms', 'general');
-  console.log('Chat room initialized');
+  try {
+    await redisClient.connect();
+    await pubClient.connect();
+    await subClient.connect();
+    
+    // Create default room if not exists
+    const roomExists = await redisClient.exists('room:general');
+    if (!roomExists) {
+      await redisClient.hSet('room:general', {
+        name: 'general',
+        creator: 'system',
+        createdAt: new Date().toISOString(),
+        isPublic: 'true'
+      });
+      await redisClient.sAdd('rooms', 'general');
+    }
+    console.log('Chat room initialized');
+  } catch (error) {
+    console.error('Redis initialization error:', error);
+    process.exit(1);
+  }
 }
+
 initializeRoom();
 
 // Helper function to generate conversation key
@@ -76,7 +92,69 @@ app.get('/api/online-users', async (req, res) => {
   }
 });
 
-// Serve login and register pages
+// Get all rooms
+app.get('/api/rooms', authenticateToken, async (req, res) => {
+  try {
+    const roomNames = await redisClient.sMembers('rooms');
+    const rooms = [];
+    
+    for (const name of roomNames) {
+      const room = await redisClient.hGetAll(`room:${name}`);
+      if (room) {
+        rooms.push({
+          name: room.name,
+          creator: room.creator,
+          createdAt: room.createdAt,
+          isPublic: room.isPublic === 'true'
+        });
+      }
+    }
+    
+    res.json(rooms);
+  } catch (error) {
+    console.error('Error fetching rooms:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Create a new room
+app.post('/api/rooms', authenticateToken, async (req, res) => {
+  try {
+    const { name, isPublic } = req.body;
+    const creator = req.user.username;
+    
+    if (!name || typeof isPublic !== 'boolean') {
+      return res.status(400).json({ error: 'Invalid room data' });
+    }
+    
+    // Check if room exists
+    const exists = await redisClient.sIsMember('rooms', name);
+    if (exists) {
+      return res.status(400).json({ error: 'Room already exists' });
+    }
+    
+    // Create room
+    await redisClient.hSet(`room:${name}`, {
+      name,
+      creator,
+      createdAt: new Date().toISOString(),
+      isPublic: isPublic.toString()
+    });
+    
+    await redisClient.sAdd('rooms', name);
+    
+    res.status(201).json({ message: 'Room created successfully' });
+  } catch (error) {
+    console.error('Error creating room:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Serve HTML pages
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
@@ -110,6 +188,12 @@ io.on('connection', (socket) => {
   
   // Join room handler
   socket.on('joinRoom', async ({ room }) => {
+    // Leave previous room if any
+    if (socket.room) {
+      socket.leave(socket.room);
+    }
+    
+    // Join new room
     socket.join(room);
     socket.room = room;
     

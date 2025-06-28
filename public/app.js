@@ -1,62 +1,3 @@
-// Handle login form submission
-const onLoginPage    = window.location.pathname === '/login';
-const onRegisterPage = window.location.pathname === '/register';
-
-if (onLoginPage){
-document.getElementById('login-form')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const username = document.getElementById('username').value;
-  const password = document.getElementById('password').value;
-  
-  try {
-    const response = await fetch('/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Login failed');
-    }
-    
-    const { token } = await response.json();
-    localStorage.setItem('chat_token', token);
-    window.location.href = '/';
-  } catch (error) {
-    document.getElementById('error-message').textContent = error.message;
-  }
-});
-}
-else if (onRegisterPage){
-// Handle registration form submission
-document.getElementById('register-form')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const username = document.getElementById('reg-username').value;
-  const password = document.getElementById('reg-password').value;
-  
-  try {
-    const response = await fetch('/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Registration failed');
-    }
-    
-    alert('Registration successful! Please login.');
-    window.location.href = '/login';
-  } catch (error) {
-    document.getElementById('reg-error-message').textContent = error.message;
-  }
-});
-}
-else{
-
-// Main chat app
 document.addEventListener('DOMContentLoaded', () => {
   // Check authentication
   const token = localStorage.getItem('chat_token');
@@ -82,10 +23,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const chatWith = document.getElementById('chat-with');
   const onlineCount = document.getElementById('online-count');
   const newConversationBtn = document.getElementById('new-conversation-btn');
-  const conversationModal = document.getElementById('conversation-modal');
-  const closeModal = document.getElementById('close-modal');
-  const startConversationBtn = document.getElementById('start-conversation-btn');
-  const conversationUserSelect = document.getElementById('conversation-user');
+  const newRoomBtn = document.getElementById('new-room-btn');
+  const roomList = document.getElementById('room-list');
+  const roomModal = document.getElementById('room-modal');
+  const closeRoomModal = document.getElementById('close-room-modal');
+  const createRoomBtn = document.getElementById('create-room-btn');
+  const roomNameInput = document.getElementById('room-name');
+  const roomPublicCheckbox = document.getElementById('room-public');
   
   // State
   let currentChat = {
@@ -107,6 +51,8 @@ document.addEventListener('DOMContentLoaded', () => {
     usernameDisplay.textContent = user.username;
     // Fetch conversations
     socket.emit('getConversations');
+    // Fetch rooms
+    fetchRooms();
   })
   .catch(error => {
     console.error('User info error:', error);
@@ -177,6 +123,10 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="message-text">${msg.text}</div>
     `;
     
+    if (isCurrentUser) {
+      messageElement.classList.add('current-user');
+    }
+    
     chatMessages.appendChild(messageElement);
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
@@ -223,24 +173,107 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.emit('getPrivateHistory', { withUser });
   }
   
-  // Open conversation modal
-  newConversationBtn.addEventListener('click', () => {
-    conversationModal.style.display = 'block';
+  // Open room creation modal
+  newRoomBtn.addEventListener('click', () => {
+    roomModal.style.display = 'block';
   });
   
-  // Close conversation modal
-  closeModal.addEventListener('click', () => {
-    conversationModal.style.display = 'none';
+  // Close room modal
+  closeRoomModal.addEventListener('click', () => {
+    roomModal.style.display = 'none';
   });
   
-  // Start new conversation
-  startConversationBtn.addEventListener('click', () => {
-    const selectedUser = conversationUserSelect.value;
-    if (selectedUser) {
-      openPrivateChat(selectedUser);
-      conversationModal.style.display = 'none';
+  // Create new room
+  createRoomBtn.addEventListener('click', async () => {
+    const roomName = roomNameInput.value.trim();
+    const isPublic = roomPublicCheckbox.checked;
+    
+    if (!roomName) {
+      alert('Please enter a room name');
+      return;
+    }
+    
+    try {
+      const response = await fetch('/api/rooms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ name: roomName, isPublic })
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create room');
+      }
+      
+      // Refresh rooms list
+      fetchRooms();
+      roomModal.style.display = 'none';
+      roomNameInput.value = '';
+      
+      // Join the new room
+      joinRoom(roomName);
+    } catch (error) {
+      alert(error.message);
     }
   });
+  
+  // Join a room
+  function joinRoom(roomName) {
+    // Update state
+    currentChat = {
+      type: 'public',
+      target: roomName
+    };
+    
+    // Update UI
+    chatWith.textContent = roomName;
+    chatMessages.innerHTML = '';
+    
+    // Join room
+    socket.emit('joinRoom', { room: roomName });
+  }
+  
+  // Fetch all rooms
+  function fetchRooms() {
+    fetch('/api/rooms', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    .then(response => response.json())
+    .then(rooms => {
+      renderRooms(rooms);
+    })
+    .catch(error => {
+      console.error('Error fetching rooms:', error);
+    });
+  }
+  
+  // Render rooms list
+  function renderRooms(rooms) {
+    roomList.innerHTML = '';
+    
+    rooms.forEach(room => {
+      const li = document.createElement('li');
+      li.className = 'room-item';
+      
+      li.innerHTML = `
+        <div class="room-info">
+          <span class="room-name">${room.name}</span>
+          <span class="room-creator">by ${room.creator}</span>
+        </div>
+        <div class="room-meta">
+          <span class="room-public">${room.isPublic ? 'Public' : 'Private'}</span>
+        </div>
+      `;
+      
+      li.addEventListener('click', () => joinRoom(room.name));
+      roomList.appendChild(li);
+    });
+  }
   
   // Online users list
   function updateOnlineUsers(users) {
@@ -248,25 +281,28 @@ document.addEventListener('DOMContentLoaded', () => {
     onlineCount.textContent = users.length;
     
     // Populate conversation modal select
-    conversationUserSelect.innerHTML = '';
-    const currentUser = usernameDisplay.textContent;
-    
-    users.forEach(user => {
-      if (user === currentUser) return;
+    const conversationUserSelect = document.getElementById('conversation-user');
+    if (conversationUserSelect) {
+      conversationUserSelect.innerHTML = '';
+      const currentUser = usernameDisplay.textContent;
       
-      // Add to online list
-      const li = document.createElement('li');
-      li.textContent = user;
-      li.style.cursor = 'pointer';
-      li.addEventListener('click', () => openPrivateChat(user));
-      onlineUsersList.appendChild(li);
-      
-      // Add to conversation modal select
-      const option = document.createElement('option');
-      option.value = user;
-      option.textContent = user;
-      conversationUserSelect.appendChild(option);
-    });
+      users.forEach(user => {
+        if (user === currentUser) return;
+        
+        // Add to online list
+        const li = document.createElement('li');
+        li.textContent = user;
+        li.style.cursor = 'pointer';
+        li.addEventListener('click', () => openPrivateChat(user));
+        onlineUsersList.appendChild(li);
+        
+        // Add to conversation modal select
+        const option = document.createElement('option');
+        option.value = user;
+        option.textContent = user;
+        conversationUserSelect.appendChild(option);
+      });
+    }
   }
   
   // Presence heartbeat (every 10 seconds)
@@ -288,4 +324,3 @@ document.addEventListener('DOMContentLoaded', () => {
     window.location.href = '/login';
   });
 });
-}

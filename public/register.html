@@ -1,29 +1,55 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Register - Redis Chatroom</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Redis Chatroom</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="auth-container">
-    <div class="auth-box">
-      <h2>Create an Account</h2>
-      <form id="register-form">
-        <div class="form-group">
-          <label for="reg-username">Username</label>
-          <input type="text" id="reg-username" required>
+    <div class="auth-container">
+        <div class="auth-box">
+            <h2>Create an Account</h2>
+            <form id="register-form">
+                <div class="form-group">
+                    <label for="reg-username">Username</label>
+                    <input type="text" id="reg-username" required>
+                </div>
+                <div class="form-group">
+                    <label for="reg-password">Password</label>
+                    <input type="password" id="reg-password" required>
+                </div>
+                <button type="submit">Register</button>
+                <div id="reg-error-message" class="error-message"></div>
+            </form>
+            <p>Already have an account? <a href="/login">Login</a></p>
         </div>
-        <div class="form-group">
-          <label for="reg-password">Password</label>
-          <input type="password" id="reg-password" required>
-        </div>
-        <button type="submit">Register</button>
-        <div id="reg-error-message" class="error-message"></div>
-      </form>
-      <p>Already have an account? <a href="/login">Login</a></p>
     </div>
-  </div>
-  
-  <script src="app.js"></script>
+    
+    <script>
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('reg-username').value;
+            const password = document.getElementById('reg-password').value;
+            
+            try {
+                const response = await fetch('/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Registration failed');
+                }
+                
+                alert('Registration successful! Please login.');
+                window.location.href = '/login';
+            } catch (error) {
+                document.getElementById('reg-error-message').textContent = error.message;
+            }
+        });
+    </script>
 </body>
 </html>

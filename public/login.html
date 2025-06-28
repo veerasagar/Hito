@@ -1,29 +1,56 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Login - Redis Chatroom</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Redis Chatroom</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="auth-container">
-    <div class="auth-box">
-      <h2>Login to Redis Chatroom</h2>
-      <form id="login-form">
-        <div class="form-group">
-          <label for="username">Username</label>
-          <input type="text" id="username" required>
+    <div class="auth-container">
+        <div class="auth-box">
+            <h2>Login to Redis Chatroom</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required>
+                </div>
+                <button type="submit">Login</button>
+                <div id="error-message" class="error-message"></div>
+            </form>
+            <p>Don't have an account? <a href="/register">Register</a></p>
         </div>
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input type="password" id="password" required>
-        </div>
-        <button type="submit">Login</button>
-        <div id="error-message" class="error-message"></div>
-      </form>
-      <p>Don't have an account? <a href="/register">Register</a></p>
     </div>
-  </div>
-  
-  <script src="app.js"></script>
+    
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Login failed');
+                }
+                
+                const { token } = await response.json();
+                localStorage.setItem('chat_token', token);
+                window.location.href = '/';
+            } catch (error) {
+                document.getElementById('error-message').textContent = error.message;
+            }
+        });
+    </script>
 </body>
 </html>
