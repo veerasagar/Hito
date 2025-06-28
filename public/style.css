@@ -9,6 +9,7 @@
   --success: #2ecc71;
   --gray: #95a5a6;
   --light-gray: #f5f7fa;
+  --border: #e0e6ed;
 }
 
 * {
@@ -32,6 +33,7 @@ body {
   margin: 0 auto;
   background: white;
   box-shadow: 0 0 20px rgba(0,0,0,0.1);
+  overflow: hidden;
 }
 
 .header {
@@ -78,18 +80,26 @@ body {
 .sidebar {
   width: 280px;
   background: var(--light-gray);
-  border-right: 1px solid #e0e6ed;
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
+.sidebar-section {
+  border-bottom: 1px solid var(--border);
+  padding: 10px 0;
+}
+
+.sidebar-section:last-child {
+  border-bottom: none;
+}
+
 .sidebar-header {
-  padding: 15px;
+  padding: 10px 15px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #e0e6ed;
 }
 
 .sidebar-header h2 {
@@ -97,7 +107,7 @@ body {
   color: var(--darker);
 }
 
-#new-conversation-btn {
+.action-btn {
   padding: 5px 10px;
   background: var(--primary);
   color: white;
@@ -107,19 +117,19 @@ body {
   font-size: 0.8rem;
 }
 
-#new-conversation-btn:hover {
+.action-btn:hover {
   background: var(--primary-dark);
 }
 
-#conversations, #online-users {
+#conversations, #online-users, .room-list {
   list-style: none;
   overflow-y: auto;
-  flex: 1;
+  max-height: 200px;
 }
 
-#conversations li, #online-users li {
-  padding: 12px 15px;
-  border-bottom: 1px solid #e0e6ed;
+#conversations li, #online-users li, .room-list li {
+  padding: 10px 15px;
+  border-bottom: 1px solid var(--border);
   cursor: pointer;
   transition: background 0.2s;
   display: flex;
@@ -133,15 +143,38 @@ body {
   font-size: 1.2rem;
 }
 
-#conversations li:hover, #online-users li:hover {
+#conversations li:hover, #online-users li:hover, .room-list li:hover {
   background: #e3f2fd;
 }
 
+.room-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.room-info {
+  flex: 1;
+}
+
+.room-name {
+  display: block;
+  font-weight: 500;
+}
+
+.room-creator {
+  font-size: 0.8rem;
+  color: var(--gray);
+}
+
+.room-meta {
+  font-size: 0.8rem;
+  color: var(--primary);
+}
+
 .online-header {
-  padding: 15px;
+  padding: 10px 15px;
   background: white;
-  border-top: 1px solid #e0e6ed;
-  border-bottom: 1px solid #e0e6ed;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -170,7 +203,7 @@ body {
 .chat-header {
   padding: 15px 20px;
   background: white;
-  border-bottom: 1px solid #e0e6ed;
+  border-bottom: 1px solid var(--border);
   box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
@@ -186,11 +219,11 @@ body {
   background: #f0f2f5;
   display: flex;
   flex-direction: column;
+  gap: 15px;
 }
 
 .message {
-  max-width: 70%;
-  margin-bottom: 15px;
+  max-width: 75%;
   padding: 12px 15px;
   border-radius: 12px;
   background: white;
@@ -233,7 +266,7 @@ body {
   display: flex;
   padding: 15px;
   background: white;
-  border-top: 1px solid #e0e6ed;
+  border-top: 1px solid var(--border);
 }
 
 #message-input {
@@ -258,9 +291,8 @@ body {
   color: white;
   border: none;
   border-radius: 25px;
-  cursor: pointer;
   font-weight: bold;
-  transition: background 0.3s;
+  cursor: pointer;
 }
 
 #send-btn:hover {
@@ -328,7 +360,6 @@ body {
   font-weight: bold;
   cursor: pointer;
   margin-top: 10px;
-  transition: background 0.3s;
 }
 
 .auth-box button:hover {
@@ -396,7 +427,7 @@ body {
   color: var(--dark);
 }
 
-#conversation-user {
+#room-name, #conversation-user {
   width: 100%;
   padding: 10px;
   border: 1px solid #ddd;
@@ -405,7 +436,11 @@ body {
   margin-bottom: 20px;
 }
 
-#start-conversation-btn {
+#room-public {
+  margin-right: 8px;
+}
+
+#create-room-btn, #start-conversation-btn {
   width: 100%;
   padding: 12px;
   background: var(--primary);
@@ -416,6 +451,41 @@ body {
   font-weight: bold;
 }
 
-#start-conversation-btn:hover {
+#create-room-btn:hover, #start-conversation-btn:hover {
   background: var(--primary-dark);
+}
+
+/* Status indicators */
+.status-indicator {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.online {
+  background: var(--success);
+}
+
+.offline {
+  background: var(--gray);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
