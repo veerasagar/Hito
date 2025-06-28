@@ -1,4 +1,8 @@
 // Handle login form submission
+const onLoginPage    = window.location.pathname === '/login';
+const onRegisterPage = window.location.pathname === '/register';
+
+if (onLoginPage){
 document.getElementById('login-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const username = document.getElementById('username').value;
@@ -23,7 +27,8 @@ document.getElementById('login-form')?.addEventListener('submit', async (e) => {
     document.getElementById('error-message').textContent = error.message;
   }
 });
-
+}
+else if (onRegisterPage){
 // Handle registration form submission
 document.getElementById('register-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -48,6 +53,8 @@ document.getElementById('register-form')?.addEventListener('submit', async (e) =
     document.getElementById('reg-error-message').textContent = error.message;
   }
 });
+}
+else{
 
 // Main chat app
 document.addEventListener('DOMContentLoaded', () => {
@@ -281,3 +288,4 @@ document.addEventListener('DOMContentLoaded', () => {
     window.location.href = '/login';
   });
 });
+}
