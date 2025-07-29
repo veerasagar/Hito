@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config()
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -231,7 +231,7 @@ io.on('connection', (socket) => {
     await pubClient.publish(`chat:${socket.room}`, JSON.stringify(message));
   });
 
-  // Private message handler
+  // Private message handler - FIXED
   socket.on('privateMessage', async ({ to, text }) => {
     const from = username;
     const conversationKey = getConversationKey(from, to);
@@ -253,9 +253,8 @@ io.on('connection', (socket) => {
     await redisClient.sAdd(`user:${from}:conversations`, to);
     await redisClient.sAdd(`user:${to}:conversations`, from);
     
-    // Publish to the private channel
-    await pubClient.publish(`private:${from}:${to}`, JSON.stringify(message));
-    await pubClient.publish(`private:${to}:${from}`, JSON.stringify(message));
+    // FIXED: Only publish to ONE channel using the conversation key
+    await pubClient.publish(`private:${conversationKey}`, JSON.stringify(message));
   });
 
   // Fetch private conversation history
@@ -295,10 +294,14 @@ subClient.pSubscribe('chat:*', (message, channel) => {
   io.to(room).emit('message', JSON.parse(message));
 });
 
-// Subscribe to private messages
+// Subscribe to private messages - FIXED
 subClient.pSubscribe('private:*', (message, channel) => {
-  const [type, from, to] = channel.split(':');
-  io.to(from).to(to).emit('privateMessage', JSON.parse(message));
+  const parsedMessage = JSON.parse(message);
+  // Extract users from the message itself, not the channel name
+  const { from, to } = parsedMessage;
+  
+  // Send to both users involved in the conversation
+  io.to(from).to(to).emit('privateMessage', parsedMessage);
 });
 
 // Clean up inactive users (every 1 minute)
