@@ -2,7 +2,7 @@
 
 A chatroom using Redis
 
-## Install Redis server
+## Install redis server and run
 
 ```bash
 redis-server
